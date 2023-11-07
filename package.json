@@ -1,10 +1,10 @@
 {
-  "name": "arraydeque",
+  "name": "superlative-queues",
   "version": "1.0.0",
-  "description": "Efficient queue data structures",
+  "description": "Useful queue data structures",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/arraydeque.d.ts",
+  "types": "dist/superlative-queues.d.ts",
   "files": [
     "dist/"
   ],
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/justinyaodu/arraydeque.git"
+    "url": "git+https://github.com/justinyaodu/superlative-queues.git"
   },
   "author": "Justin Yao Du",
   "license": "MIT",
