@@ -5,6 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/arraydeque.d.ts",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "clean": "rm -rf dist types",
     "build": "npm run clean && mkdir dist/ types/ && tsc && api-extractor run",
