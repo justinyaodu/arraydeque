@@ -11,13 +11,7 @@ class ArrayDeque<T> {
   /**
    * The number of elements in the ArrayDeque.
    */
-  size() {
-    let size = this._tail - this._head;
-    if (size < 0) {
-      size += this._buffer.length;
-    }
-    return size;
-  }
+  readonly size: number;
 
   /**
    * The index of the head.
@@ -25,8 +19,6 @@ class ArrayDeque<T> {
    * @internal
    */
   _head: number;
-
-  _tail: number;
 
   /**
    * Circular buffer containing the elements.
@@ -41,11 +33,10 @@ class ArrayDeque<T> {
    * Constructs an empty ArrayDeque.
    */
   constructor() {
+    this.size = 0;
     this._head = 0;
-    this._tail = 0;
     this._buffer = [undefined];
     this._indexMask = 0;
-    this._ensureCapacity(1020);
   }
 
   /**
@@ -58,15 +49,13 @@ class ArrayDeque<T> {
       return;
     }
 
-    const size = this.size();
-
     let newCapacity = this._buffer.length;
     do {
       newCapacity *= 2;
     } while (newCapacity < capacity);
 
     const relocateCount =
-      this._head + size > this._buffer.length
+      this._head + this.size > this._buffer.length
         ? this._buffer.length - this._head
         : 0;
 
@@ -87,23 +76,19 @@ class ArrayDeque<T> {
     }
 
     this._indexMask = this._buffer.length - 1;
-    this._tail = (this._head + size) & this._indexMask;
-    // console.log(this._buffer.length, this._indexMask);
   }
 
   /**
    * Inserts a new element at the head.
    */
   addFirst(value: T): void {
-    const newHead = (this._head - 1) & this._indexMask;
-    if (newHead === this._tail) {
-      this._ensureCapacity(this._buffer.length + 1);
-      this.addFirst(value);
-      return;
-    }
+    this._ensureCapacity(this.size + 1);
 
+    const newHead = (this._head - 1) & this._indexMask;
     this._buffer[newHead] = value;
     this._head = newHead;
+
+    (this as { size: number }).size++;
   }
 
   /**
@@ -111,23 +96,12 @@ class ArrayDeque<T> {
    * {@link ArrayDeque.enqueue}.
    */
   addLast(value: T): void {
-    const tail = this._tail;
-    const newTail = (tail + 1) & this._indexMask;
-    if (newTail === this._head) {
-      // console.log({ newTail, head: this._head, tail: this._tail });
-      this._ensureCapacity(this._buffer.length + 1);
-      /*
-      console.log(this);
-      if (this._buffer.length > 10) {
-        throw new Error();
-      }
-      */
-      this.addLast(value);
-      return;
-    }
+    this._ensureCapacity(this.size + 1);
 
-    this._buffer[tail] = value;
-    this._tail = newTail;
+    const newTail = (this._head + this.size) & this._indexMask;
+    this._buffer[newTail] = value;
+
+    (this as { size: number }).size++;
   }
 
   /**
@@ -136,6 +110,10 @@ class ArrayDeque<T> {
    * @returns The element at the head, or undefined if the ArrayDeque is empty.
    */
   first(): T | undefined {
+    if (this.size === 0) {
+      return undefined;
+    }
+
     return this._buffer[this._head];
   }
 
@@ -147,16 +125,15 @@ class ArrayDeque<T> {
    * is empty.
    */
   removeFirst(): T | undefined {
-    const head = this._head;
-
-    if (head === this._tail) {
+    if (this.size === 0) {
       return undefined;
     }
 
-    const buffer = this._buffer;
-    const value = buffer[head];
-    buffer[head] = undefined;
-    this._head = (head + 1) & this._indexMask;
+    const value = this._buffer[this._head];
+    this._buffer[this._head] = undefined;
+    this._head = (this._head + 1) & this._indexMask;
+
+    (this as { size: number }).size--;
     return value;
   }
 
@@ -166,7 +143,12 @@ class ArrayDeque<T> {
    * @returns The element at the tail, or undefined if the ArrayDeque is empty.
    */
   last(): T | undefined {
-    return this._buffer[(this._tail - 1) & this._indexMask];
+    if (this.size === 0) {
+      return undefined;
+    }
+
+    const tail = (this._head + this.size - 1) & this._indexMask;
+    return this._buffer[tail];
   }
 
   /**
@@ -176,15 +158,15 @@ class ArrayDeque<T> {
    * ArrayDeque is empty.
    */
   removeLast(): T | undefined {
-    if (this._head === this._tail) {
+    if (this.size === 0) {
       return undefined;
     }
 
-    const newTail = (this._tail - 1) & this._indexMask;
-    const value = this._buffer[newTail];
-    this._buffer[newTail] = undefined;
-    this._tail = newTail;
+    const tail = (this._head + this.size - 1) & this._indexMask;
+    const value = this._buffer[tail];
+    this._buffer[tail] = undefined;
 
+    (this as { size: number }).size--;
     return value;
   }
 
@@ -199,16 +181,12 @@ class ArrayDeque<T> {
    * out of range.
    */
   at(index: number): T | undefined {
-    const size = this.size();
-    if (index >= size) {
+    if (index < -this.size || index >= this.size) {
       return undefined;
     }
 
     if (index < 0) {
-      index += size;
-      if (index < 0) {
-        return undefined;
-      }
+      index += this.size;
     }
 
     return this._buffer[(this._head + index) & this._indexMask];
@@ -248,8 +226,8 @@ class ArrayDeque<T> {
    */
   clone(): ArrayDeque<T> {
     const clone = new ArrayDeque<T>();
+    (clone as { size: number }).size = this.size;
     clone._head = this._head;
-    clone._tail = this._tail;
     clone._buffer = this._buffer.slice();
     clone._indexMask = this._indexMask;
     return clone;
@@ -280,7 +258,7 @@ class ArrayDequeIterator<T> implements IterableIterator<T> {
   }
 
   next(): IteratorResult<T> {
-    if (this._index >= this._arrayDeque.size()) {
+    if (this._index >= this._arrayDeque.size) {
       return { done: true, value: undefined };
     }
 
