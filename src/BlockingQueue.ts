@@ -29,17 +29,10 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
    */
   _resolves = new ArrayDeque<(value: T) => void>();
 
-  /** @internal */
-  _listeners: ((value: T) => void)[] = [];
-
   /**
    * Inserts an element at the tail of the queue.
    */
   enqueue(value: T): void {
-    for (const listener of this._listeners) {
-      listener(value);
-    }
-
     if (this._resolves.size > 0) {
       this._resolves.dequeue()!(value);
     } else {
@@ -64,38 +57,6 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
         this._resolves.enqueue(resolve);
       });
     }
-  }
-
-  /**
-   * Adds a listener which will be called for every (current and future)
-   * enqueued element. Elements that have already been dequeued are excluded.
-   *
-   * @internal
-   */
-  _addListener(listener: (value: T) => void): void {
-    this._listeners.push(listener);
-
-    for (const value of this._values) {
-      listener(value);
-    }
-  }
-
-  /**
-   * Returns an isolated copy of this BlockingDeque.
-   *
-   * Every (current and future) element enqueued into this BlockingDeque will
-   * also be enqueued into the returned BlockingDeque. Elements that have
-   * already been dequeued are excluded.
-   *
-   * Dequeuing from this BlockingDeque does not affect the returned
-   * BlockingDeque.
-   */
-  tee(): BlockingQueue<T> {
-    const teed = new BlockingQueue<T>();
-    this._addListener((value) => {
-      teed.enqueue(value);
-    });
-    return teed;
   }
 
   /**
