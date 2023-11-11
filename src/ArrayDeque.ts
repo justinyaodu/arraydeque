@@ -224,9 +224,11 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Removes and returns the element at the head. Equivalent to {@link ArrayDeque.removeFirst}.
+   * Removes and returns the element at the head. Equivalent to
+   * {@link ArrayDeque.removeFirst}.
    *
-   * @returns The element removed from the head, or undefined if the ArrayDeque is empty.
+   * @returns The element removed from the head, or undefined if the ArrayDeque
+   * is empty.
    */
   dequeue(): T | undefined {
     return this.removeFirst();
