@@ -29,14 +29,18 @@ class ArrayDeque<T> {
 
   _indexMask: number;
 
+  _logs: string[] = [];
+
   /**
    * Constructs an empty ArrayDeque.
    */
   constructor() {
     this.size = 0;
     this._head = 0;
-    this._buffer = [undefined];
-    this._indexMask = 0;
+    // this._buffer = [undefined];
+    // this._indexMask = 0;
+    this._buffer = new Array<T | undefined>(16);
+    this._indexMask = 15;
   }
 
   /**
@@ -54,6 +58,99 @@ class ArrayDeque<T> {
       newCapacity *= 2;
     } while (newCapacity < capacity);
 
+    const end = this._head + this.size;
+    if (end <= this._buffer.length) {
+      this._logs.push("extend")
+      this._buffer.length = newCapacity;
+      // this._buffer = this._buffer.concat(new Array<undefined>(newCapacity - this._buffer.length));
+      // const buffer = new Array<T | undefined>(newCapacity);
+      // let i = this._head;
+      // let j = 0;
+      // while (i < end) {
+      //   buffer[j++] = this._buffer[i++];
+      // }
+    } else if (false /* (this._head - this._buffer.length) * 2 < this.size */) {
+      this._logs.push("relocate")
+      /*
+      const newHead = this._head + (newCapacity - this._buffer.length);
+      const toRelocate = this._buffer.slice(this._head);
+      this._buffer.length = this._head;
+      this._buffer.length = newCapacity - toRelocate.length;
+      this._buffer = this._buffer.concat(toRelocate);
+      this._head = newHead;
+      */
+
+      const stop = this._buffer.length;
+      const offset = newCapacity - this._buffer.length;
+      const newHead = this._head + offset;
+
+      this._buffer.length = newCapacity;
+
+      let src = this._head;
+      while (src < stop) {
+        this._buffer[src + offset] = this._buffer[src];
+        this._buffer[src] = undefined;
+        src++;
+      }
+
+      this._head = newHead;      
+    } else {
+      this._logs.push("reallocate")
+      const buffer = new Array<T | undefined>(newCapacity);
+      let i = this._head;
+      let j = 0;
+      while (i < this._buffer.length) {
+        buffer[j++] = this._buffer[i++];
+      }
+
+      i = 0;
+      const bound = end & this._indexMask;
+      while (i < bound) {
+        buffer[j++] = this._buffer[i++];
+      }
+
+      this._buffer = buffer;
+      this._head = 0;
+
+      /*
+      this._buffer = this._buffer.slice(this._head).concat(this._buffer.slice(0, end & this._indexMask), new Array<undefined>(newCapacity - this._buffer.length));
+      this._head = 0;
+      */
+    }
+
+    this._indexMask = this._buffer.length - 1;
+
+    /*
+    const end = this._head + this.size;
+    const empties = new Array<undefined>(newCapacity - this._buffer.length);
+    if (end <= this._buffer.length) {
+      this._buffer = this._buffer.concat(empties);
+    } else {
+      this._buffer = this._buffer.slice(this._head).concat(this._buffer.slice(0, end & this._indexMask), empties);
+    }
+    */
+
+    /*
+    const end = this._head + this.size;
+    if (end > this._buffer.length) {
+      const buffer = this._buffer.slice(this._head);
+      const maskedEnd = end & this._indexMask;
+      for (let i = 0; i < maskedEnd; i++) {
+        buffer.push(this._buffer[i]);
+      }
+      this._buffer = buffer;
+      this._head = 0;
+    }
+
+    const count = newCapacity - this._buffer.length;
+    for (let i = 0; i < count; i++) {
+      this._buffer.push(undefined);
+    }
+
+    this._indexMask = this._buffer.length - 1;
+    */
+
+    /*
     const relocateCount =
       this._head + this.size > this._buffer.length
         ? this._buffer.length - this._head
@@ -76,6 +173,7 @@ class ArrayDeque<T> {
     }
 
     this._indexMask = this._buffer.length - 1;
+    */
   }
 
   /**
