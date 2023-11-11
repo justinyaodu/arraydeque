@@ -1,7 +1,9 @@
 /**
  * A double-ended queue backed by an array.
  *
- * Supports insertion and removal at both ends, and random access to elements by index.
+ * ArrayDeques support amortized constant-time insertion and removal at both
+ * ends, and constant-time access to elements by index. Iterating over an
+ * ArrayDeque returns elements sequentially from the head to the tail.
  *
  * @public
  */
@@ -97,8 +99,6 @@ class ArrayDeque<T> {
 
   /**
    * Inserts a new element at the head.
-   *
-   * @param value - The element to insert.
    */
   addFirst(value: T): void {
     this._ensureCapacity(this.size + 1);
@@ -114,9 +114,8 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Inserts a new element at the tail. Equivalent to {@link ArrayDeque.enqueue}.
-   *
-   * @param value - The element to insert.
+   * Inserts a new element at the tail. Equivalent to
+   * {@link ArrayDeque.enqueue}.
    */
   addLast(value: T): void {
     this._ensureCapacity(this.size + 1);
@@ -141,9 +140,11 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Removes and returns the element at the head. Equivalent to {@link ArrayDeque.dequeue}.
+   * Removes and returns the element at the head. Equivalent to
+   * {@link ArrayDeque.dequeue}.
    *
-   * @returns The element removed from the head, or undefined if the ArrayDeque is empty.
+   * @returns The element removed from the head, or undefined if the ArrayDeque
+   * is empty.
    */
   removeFirst(): T | undefined {
     if (this.size === 0) {
@@ -174,7 +175,8 @@ class ArrayDeque<T> {
   /**
    * Removes and returns the element at the tail.
    *
-   * @returns The element removed from the tail, or undefined if the ArrayDeque is empty.
+   * @returns The element removed from the tail, or undefined if the
+   * ArrayDeque is empty.
    */
   removeLast(): T | undefined {
     if (this.size === 0) {
@@ -190,11 +192,14 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns the element at the specified index, where 0 is the head and higher indices move toward the tail.
+   * Returns the element at the specified index, where 0 is the head and higher
+   * indices move toward the tail.
    *
-   * For negative indices, -1 is the tail and lower indices move toward the head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
+   * For negative indices, -1 is the tail and lower indices move toward the
+   * head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
    *
-   * @returns The element at the specified index, or undefined if the index is out of range.
+   * @returns The element at the specified index, or undefined if the index is
+   * out of range.
    */
   at(index: number): T | undefined {
     if (index >= this.size) {
@@ -213,8 +218,6 @@ class ArrayDeque<T> {
 
   /**
    * Inserts a new element at the tail. Equivalent to {@link ArrayDeque.addLast}.
-   *
-   * @param value - The element to insert.
    */
   enqueue(value: T): void {
     this.addLast(value);
@@ -230,30 +233,60 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns an iterator that returns elements sequentially, from the head to the tail.
+   * Returns an iterator that returns elements sequentially, from the head to
+   * the tail.
    *
-   * If the ArrayDeque is modified during iteration, the iterator's behavior is undefined.
+   * The ArrayDeque must not be modified while the iterator is in use.
+   * Otherwise, the behavior of the iterator is not defined.
    */
   [Symbol.iterator](): IterableIterator<T> {
     return new ArrayDequeIterator(this);
+  }
+
+  /**
+   * Returns a shallow copy of this ArrayDeque.
+   */
+  clone(): ArrayDeque<T> {
+    const clone = new ArrayDeque<T>();
+    (clone as { size: number }).size = this.size;
+    clone._head = this._head;
+    clone._buffer = this._buffer.slice();
+    return clone;
+  }
+
+  /**
+   * Returns an array containing the elements in this ArrayDeque, from the head
+   * to the tail.
+   */
+  toArray(): T[] {
+    // This could probably be optimized for better performance.
+    return Array.from(this);
+  }
+
+  /**
+   * Equivalent to {@link ArrayDeque.toArray}.
+   */
+  toJSON(): T[] {
+    return this.toArray();
   }
 }
 
 class ArrayDequeIterator<T> implements IterableIterator<T> {
   _index: number;
 
-  constructor(public _deque: ArrayDeque<T>) {
+  constructor(public _arrayDeque: ArrayDeque<T>) {
     this._index = 0;
   }
 
   next(): IteratorResult<T> {
-    if (this._index >= this._deque.size) {
+    if (this._index >= this._arrayDeque.size) {
       return { done: true, value: undefined };
     }
 
+    const index = this._arrayDeque._wrapRight(this._index++);
     return {
       done: false,
-      value: this._deque._buffer[this._deque._wrapRight(this._index++)]!,
+      value: this._arrayDeque._buffer[index]!,
     };
   }
 
