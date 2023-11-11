@@ -6,13 +6,6 @@ import { ArrayDeque } from "superlative-queues";
 const suite = new Benchmark.Suite();
 const iterations = 1000;
 
-const queue = new ArrayDeque();
-for (let i = 0; i < iterations; i++) {
-  queue.enqueue(i);
-  queue.enqueue(queue.dequeue());
-}
-// console.log(queue._logs);
-
 suite.add("array", () => {
   const queue = [];
   for (let i = 0; i < iterations; i++) {

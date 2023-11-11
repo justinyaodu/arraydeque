@@ -29,8 +29,6 @@ class ArrayDeque<T> {
 
   _indexMask: number;
 
-  // _logs: string[] = [];
-
   /**
    * Constructs an empty ArrayDeque.
    */
@@ -60,38 +58,8 @@ class ArrayDeque<T> {
 
     const end = this._head + this.size;
     if (end <= this._buffer.length) {
-      // this._logs.push("extend")
       this._buffer.length = newCapacity;
-      // this._logs.push("reallocate")
-      // const buffer = new Array<T | undefined>(newCapacity);
-
-      // let i = this._head;
-      // let j = 0;
-      // while (i < end) {
-      //   buffer[j++] = this._buffer[i++];
-      // }
-
-      // this._buffer = buffer;
-      // this._head = 0;
-    } /* else if ((this._head - this._buffer.length) * 2 < this.size) {
-      this._logs.push("relocate")
-
-      const stop = this._buffer.length;
-      const offset = newCapacity - this._buffer.length;
-      const newHead = this._head + offset;
-
-      this._buffer.length = newCapacity;
-
-      let src = this._head;
-      while (src < stop) {
-        this._buffer[src + offset] = this._buffer[src];
-        this._buffer[src] = undefined;
-        src++;
-      }
-
-      this._head = newHead;      
-    } */ else {
-      // this._logs.push("reallocate")
+    } else {
       const buffer = new Array<T | undefined>(newCapacity);
       let i = this._head;
       let j = 0;
@@ -116,7 +84,9 @@ class ArrayDeque<T> {
    * Inserts a new element at the head.
    */
   addFirst(value: T): void {
-    this._ensureCapacity(this.size + 1);
+    if (this.size === this._buffer.length) {
+      this._ensureCapacity(this.size + 1);
+    }
 
     const newHead = (this._head - 1) & this._indexMask;
     this._buffer[newHead] = value;
@@ -130,7 +100,9 @@ class ArrayDeque<T> {
    * {@link ArrayDeque.enqueue}.
    */
   addLast(value: T): void {
-    this._ensureCapacity(this.size + 1);
+    if (this.size === this._buffer.length) {
+      this._ensureCapacity(this.size + 1);
+    }
 
     const newTail = (this._head + this.size) & this._indexMask;
     this._buffer[newTail] = value;
