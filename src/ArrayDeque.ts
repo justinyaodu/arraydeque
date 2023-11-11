@@ -35,8 +35,6 @@ class ArrayDeque<T> {
   constructor() {
     this.size = 0;
     this._head = 0;
-    // this._buffer = [undefined];
-    // this._indexMask = 0;
     this._buffer = new Array<T | undefined>(16);
     this._indexMask = 15;
   }
@@ -51,29 +49,25 @@ class ArrayDeque<T> {
       return;
     }
 
-    let newCapacity = this._buffer.length;
+    let pow2Capacity = this._buffer.length;
     do {
-      newCapacity *= 2;
-    } while (newCapacity < capacity);
+      pow2Capacity *= 2;
+    } while (pow2Capacity < capacity);
 
+    this._resizeTo(pow2Capacity);
+  }
+
+  _resizeTo(pow2Capacity: number): void {
     const end = this._head + this.size;
     if (end <= this._buffer.length) {
-      this._buffer.length = newCapacity;
+      this._buffer.length = pow2Capacity;
     } else {
-      const buffer = new Array<T | undefined>(newCapacity);
-      let i = this._head;
-      let j = 0;
-      while (i < this._buffer.length) {
-        buffer[j++] = this._buffer[i++];
+      const newBuffer = new Array<T | undefined>(pow2Capacity);
+      for (let i = 0; i < this.size; i++) {
+        newBuffer[i] = this._buffer[(this._head + i) & this._indexMask];
       }
 
-      i = 0;
-      const bound = end & this._indexMask;
-      while (i < bound) {
-        buffer[j++] = this._buffer[i++];
-      }
-
-      this._buffer = buffer;
+      this._buffer = newBuffer;
       this._head = 0;
     }
 
@@ -85,7 +79,7 @@ class ArrayDeque<T> {
    */
   addFirst(value: T): void {
     if (this.size === this._buffer.length) {
-      this._ensureCapacity(this.size + 1);
+      this._resizeTo(this._buffer.length << 1);
     }
 
     const newHead = (this._head - 1) & this._indexMask;
@@ -101,7 +95,7 @@ class ArrayDeque<T> {
    */
   addLast(value: T): void {
     if (this.size === this._buffer.length) {
-      this._ensureCapacity(this.size + 1);
+      this._resizeTo(this._buffer.length << 1);
     }
 
     const newTail = (this._head + this.size) & this._indexMask;
@@ -131,15 +125,22 @@ class ArrayDeque<T> {
    * is empty.
    */
   removeFirst(): T | undefined {
+    // I tried using `this.size -= Math.sign(this.size)` to omit this branch,
+    // but that implementation was slower.
     if (this.size === 0) {
       return undefined;
     }
 
     const value = this._buffer[this._head];
     this._buffer[this._head] = undefined;
-    this._head = (this._head + 1) & this._indexMask;
 
+    this._head = (this._head + 1) & this._indexMask;
     (this as { size: number }).size--;
+
+    // if (this.size + 1024 < this._buffer.length >> 2) {
+    //   this._resizeTo(this._buffer.length >> 1);
+    // }
+
     return value;
   }
 
@@ -173,6 +174,11 @@ class ArrayDeque<T> {
     this._buffer[tail] = undefined;
 
     (this as { size: number }).size--;
+
+    // if (this.size + 1024 < this._buffer.length >> 2) {
+    //   this._resizeTo(this._buffer.length >> 1);
+    // }
+
     return value;
   }
 
