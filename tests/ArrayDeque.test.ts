@@ -3,37 +3,30 @@ import { describe, expect, test } from "@jest/globals";
 import { ArrayDeque } from "../src/index";
 
 interface ArrayDequeLike<T> {
-  size: number;
   _head: number;
+  _tail: number;
   _buffer: (T | undefined)[];
 }
 
 function make<T>({
-  size,
   _head,
+  _tail,
   _buffer,
 }: ArrayDequeLike<T>): TestArrayDeque<T> {
   const deque = new TestArrayDeque<T>();
-  (deque as { size: number }).size = size;
   deque._head = _head;
+  deque._tail = _tail;
   deque._buffer = _buffer;
+  deque._indexMask = _buffer.length - 1;
   return deque;
 }
 
 class TestArrayDeque<T> extends ArrayDeque<T> {
-  override _wrapRight(offset: number): number {
-    expect(offset).toBeGreaterThanOrEqual(0);
-    expect(offset).toBeLessThanOrEqual(this._buffer.length);
-    return super._wrapRight(offset);
-  }
-
-  override _tail(): number {
-    expect(this.size).toBeGreaterThan(0);
-    return super._tail();
-  }
-
   assertEqual(expected: ArrayDequeLike<T>): void {
-    expect(this).toEqual(expected);
+    expect(this).toEqual({
+      ...expected,
+      _indexMask: expected._buffer.length - 1,
+    });
   }
 
   override first(): T | undefined {
@@ -71,56 +64,56 @@ describe("_ensureCapacity", () => {
     deque.assertEqual(new TestArrayDeque());
 
     deque._ensureCapacity(2);
-    expect(deque).toEqual({
-      size: 0,
+    deque.assertEqual({
       _head: 0,
+      _tail: 0,
       _buffer: [undefined, undefined],
     });
 
     deque._ensureCapacity(3);
     deque.assertEqual(
       make({
-        size: 0,
         _head: 0,
+        _tail: 0,
         _buffer: empty(4),
-      }),
+      })
     );
   });
 
   test("not full, not wrapped", () => {
     const deque = make({
-      size: 3,
       _head: 1,
+      _tail: 3,
       _buffer: [undefined, 10, 20, 30],
     });
 
     deque._ensureCapacity(5);
     deque.assertEqual({
-      size: 3,
       _head: 1,
+      _tail: 3,
       _buffer: [undefined, 10, 20, 30, ...empty(4)],
     });
   });
 
   test("not full, wrapped", () => {
     const deque = make({
-      size: 3,
       _head: 3,
+      _tail: 1,
       _buffer: [30, 40, undefined, 10],
     });
 
     deque._ensureCapacity(5);
     deque.assertEqual({
-      size: 3,
       _head: 7,
+      _tail: 1,
       _buffer: [30, 40, ...empty(5), 10],
     });
   });
 
   test("full, not wrapped", () => {
     const deque = make({
-      size: 4,
       _head: 0,
+      _tail: 3,
       _buffer: [10, 20, 30, 40],
     });
 

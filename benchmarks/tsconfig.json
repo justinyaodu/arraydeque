@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "es2015",
+    "module": "nodenext",
+    "strict": false,
+    "noEmit": true,
+    "checkJs": true
+  },
+  "include": ["**/*.js"]
+}

@@ -33,7 +33,7 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
    * Inserts an element at the tail of the queue.
    */
   enqueue(value: T): void {
-    if (this._resolves.size > 0) {
+    if (this._resolves.size() > 0) {
       this._resolves.dequeue()!(value);
     } else {
       this._values.enqueue(value);
@@ -50,7 +50,7 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
    * Promise will never resolve either.
    */
   dequeue(): Promise<T> {
-    if (this._values.size > 0) {
+    if (this._values.size() > 0) {
       return Promise.resolve(this._values.dequeue()!);
     } else {
       return new Promise<T>((resolve) => {
@@ -60,13 +60,10 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
   }
 
   /**
-   * Returns an iterator whose `next()` method returns the Promise that would
-   * be returned by {@link BlockingQueue.dequeue}.
-   *
-   * Note that this also dequeues elements from the BlockingQueue. To iterate
-   * without dequeuing elements, call {@link BlockingQueue.tee} first.
+   * Returns an async iterator whose `next()` method returns the Promise that
+   * would be returned by {@link BlockingQueue.dequeue}.
    */
-  [Symbol.asyncIterator]() {
+  [Symbol.asyncIterator](): AsyncIterableIterator<T> {
     return new BlockingQueueAsyncIterator(this);
   }
 }
