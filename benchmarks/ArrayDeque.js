@@ -11,7 +11,7 @@ for (let i = 0; i < iterations; i++) {
   queue.enqueue(i);
   queue.enqueue(queue.dequeue());
 }
-console.log(queue._logs);
+// console.log(queue._logs);
 
 suite.add("array", () => {
   const queue = [];
