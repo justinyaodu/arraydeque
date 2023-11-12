@@ -1,7 +1,7 @@
 import Benchmark from "benchmark";
 import Denque from "denque";
 import Deque from "double-ended-queue";
-import { ArrayDeque } from "superlative-queues";
+import { ArrayDeque as ArrayDeque } from "superlative-queues";
 
 const suiteOptions = {
   onStart(e) {
