@@ -15,50 +15,11 @@ class ArrayDeque2<T> {
     return (this._tail - this._head) & this._indexMask;
   }
 
-  /*
-  _resizeTo(pow2Capacity: number): void {
-    const size = this.size();
-    if (this._head + size <= this._buffer.length) {
-      this._buffer.length = pow2Capacity;
-    } else {
-      const newBuffer = new Array<T | undefined>(pow2Capacity);
-      for (let i = 0; i < size; i++) {
-        newBuffer[i] = this._buffer[(this._head + i) & this._indexMask];
-      }
-      this._buffer = newBuffer;
-      this._head = 0;
-      this._tail = size;
-    }
-    this._indexMask = pow2Capacity - 1;
-  }
-
-  addFirst(value: T): void {
-    let newHead = (this._head - 1) & this._indexMask;
-    if (newHead === this._tail) {
-      this._resizeTo(this._buffer.length << 1);
-      newHead = (this._head - 1) & this._indexMask;
-    }
-
-    this._buffer[newHead] = value;
-    this._head = newHead;
-  }
-
-  addLast(value: T): void {
-    let newTail = (this._tail + 1) & this._indexMask;
-    if (newTail === this._head) {
-      this._resizeTo(this._buffer.length << 1);
-      newTail = (this._tail + 1) & this._indexMask;
-    }
-
-    this._buffer[this._tail] = value;
-    this._tail = newTail;
-  }
-  */
-
   _grow(): void {
     if (this._head === 0) {
       this._buffer.length <<= 1;
     } else {
+      /*
       const newBuffer = new Array<T | undefined>(this._buffer.length << 1);
       for (let i = 0; i < this._buffer.length; i++) {
         newBuffer[i] = this._buffer[(this._head + i) & this._indexMask];
@@ -66,6 +27,15 @@ class ArrayDeque2<T> {
       this._head = 0;
       this._tail = this._buffer.length;
       this._buffer = newBuffer;
+      */
+      this._head = 0;
+      this._tail = this._buffer.length;
+      this._buffer = this._buffer
+        .slice(this._head)
+        .concat(
+          this._buffer.slice(0, this._head),
+          new Array<undefined>(this._buffer.length),
+        );
     }
     this._indexMask = this._buffer.length - 1;
   }
@@ -103,7 +73,7 @@ class ArrayDeque2<T> {
     }
 
     this._tail = (this._tail - 1) & this._indexMask;
-    const value = this._buffer[this._tail]
+    const value = this._buffer[this._tail];
     this._buffer[this._tail] = undefined;
     return value;
   }
@@ -177,14 +147,35 @@ class ArrayDeque<T> {
   }
 
   _resizeTo(pow2Capacity: number): void {
-    const end = this._head + this.size;
-    if (end <= this._buffer.length) {
+    if (this._head + this.size <= this._buffer.length) {
       this._buffer.length = pow2Capacity;
     } else {
+      /*
       const newBuffer = new Array<T | undefined>(pow2Capacity);
       for (let i = 0; i < this.size; i++) {
         newBuffer[i] = this._buffer[(this._head + i) & this._indexMask];
       }
+      this._buffer = newBuffer;
+      this._head = 0;
+      */
+      /*
+      this._buffer = this._buffer
+        .slice(this._head)
+        .concat(this._buffer.slice(0, this._head), new Array<undefined>(this._buffer.length));
+      this._head = 0;
+      */
+      const newBuffer = new Array<T | undefined>(pow2Capacity);
+      let dest = 0;
+      let src = this._head;
+
+      do {
+        newBuffer[dest++] = this._buffer[src++];
+      } while (src < this._buffer.length);
+
+      src = 0;
+      do {
+        newBuffer[dest++] = this._buffer[src++];
+      } while (dest < this._buffer.length);
 
       this._buffer = newBuffer;
       this._head = 0;

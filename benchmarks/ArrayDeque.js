@@ -61,7 +61,7 @@ function threeEnqueueThreeDequeue(size) {
 
   return new Benchmark.Suite(
     `size ${size}: 3x enqueue, 3x dequeue`,
-    suiteOptions
+    suiteOptions,
   )
     .add("array", () => {
       array.push(1);
@@ -118,7 +118,7 @@ const suites = [
     const iterations = 1000;
     return new Benchmark.Suite(
       `empty: ${iterations}x enqueue, ${iterations}x dequeue`,
-      suiteOptions
+      suiteOptions,
     )
       .add("array", () => {
         const array = setupArray(iterations);
@@ -149,7 +149,7 @@ const suites = [
     const iterations = 1000;
     return new Benchmark.Suite(
       `empty: ${iterations}x (enqueue, enqueue, dequeue)`,
-      suiteOptions
+      suiteOptions,
     )
       .add("array", () => {
         const queue = [];
@@ -184,7 +184,7 @@ const suites = [
     const iterations = 1000;
     return new Benchmark.Suite(
       `empty: ${iterations}x (push, push, pop)`,
-      suiteOptions
+      suiteOptions,
     )
       .add("array", () => {
         const queue = [];
@@ -223,7 +223,7 @@ const suites = [
     const iterations = 1000;
     return new Benchmark.Suite(
       `empty: ${iterations}x (push, unshift, push, unshift, pop, shift)`,
-      suiteOptions
+      suiteOptions,
     )
       .add("array", () => {
         const queue = [];
