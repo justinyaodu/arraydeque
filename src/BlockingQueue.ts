@@ -60,13 +60,10 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
   }
 
   /**
-   * Returns an iterator whose `next()` method returns the Promise that would
-   * be returned by {@link BlockingQueue.dequeue}.
-   *
-   * Note that this also dequeues elements from the BlockingQueue. To iterate
-   * without dequeuing elements, call {@link BlockingQueue.tee} first.
+   * Returns an async iterator whose `next()` method returns the Promise that
+   * would be returned by {@link BlockingQueue.dequeue}.
    */
-  [Symbol.asyncIterator]() {
+  [Symbol.asyncIterator](): AsyncIterableIterator<T> {
     return new BlockingQueueAsyncIterator(this);
   }
 }

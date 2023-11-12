@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "dependencies": {
+    "benchmark": "^2.1.4",
+    "denque": "^2.1.0",
+    "double-ended-queue": "^2.1.0-0",
+    "superlative-queues": "file:.."
+  },
+  "devDependencies": {
+    "@types/benchmark": "^2.1.5",
+    "@types/double-ended-queue": "^2.1.6"
+  }
+}

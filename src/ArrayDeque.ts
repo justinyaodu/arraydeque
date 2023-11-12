@@ -14,102 +14,100 @@ class ArrayDeque<T> {
   readonly size: number;
 
   /**
-   * The index of the head.
+   * The index of the head. Always in [0, `this._buffer.length`).
    *
    * @internal
    */
   _head: number;
 
   /**
-   * Circular buffer containing the elements.
+   * Circular buffer containing the elements. Its length is always a power of 2.
+   * Slots that don't contain elements are either empty or set to undefined.
    *
    * @internal
    */
   _buffer: (T | undefined)[];
 
   /**
-   * Constructs an empty ArrayDeque.
+   * Used to wrap indices into the range [0, `this._buffer.length`). Always
+   * equal to `this._buffer.length - 1`.
+   *
+   * @internal
    */
-  constructor() {
+  _indexMask: number;
+
+  /**
+   * Constructs an empty ArrayDeque.
+   *
+   * @param capacity - If specified, ensure that the ArrayDeque can grow to this
+   * size without additional allocations in the future.
+   */
+  constructor(capacity?: number) {
+    let pow2Capacity;
+    if (capacity === undefined) {
+      pow2Capacity = 16;
+    } else {
+      pow2Capacity = 1;
+      while (pow2Capacity < capacity) {
+        pow2Capacity <<= 1;
+      }
+    }
+
     this.size = 0;
     this._head = 0;
-    this._buffer = [undefined];
+    this._buffer = new Array<T | undefined>(pow2Capacity);
+    this._indexMask = pow2Capacity - 1;
   }
 
   /**
-   * Returns the buffer index corresponding to an offset from the head.
-   *
-   * The offset must be in [0, `this._buffer.length`].
-   *
-   * @internal
+   * Ensures that the ArrayDeque can grow to this size without additional
+   * allocations in the future.
    */
-  _wrapRight(offset: number): number {
-    let wrapped = this._head + offset;
-    if (wrapped >= this._buffer.length) {
-      wrapped -= this._buffer.length;
-    }
-    return wrapped;
-  }
-
-  /**
-   * Returns the index of the tail, assuming the ArrayDeque is non-empty.
-   *
-   * @internal
-   */
-  _tail(): number {
-    return this._wrapRight(this.size - 1);
-  }
-
-  /**
-   * Ensures that the buffer has space for the specified number of elements.
-   *
-   * @internal
-   */
-  _ensureCapacity(capacity: number): void {
+  ensureCapacity(capacity: number): void {
     if (capacity <= this._buffer.length) {
       return;
     }
 
-    let newCapacity = this._buffer.length;
+    let pow2Capacity = this._buffer.length;
     do {
-      newCapacity *= 2;
-    } while (newCapacity < capacity);
+      pow2Capacity *= 2;
+    } while (pow2Capacity < capacity);
 
-    const relocateCount =
-      this._head + this.size > this._buffer.length
-        ? this._buffer.length - this._head
-        : 0;
+    this._resizeTo(pow2Capacity);
+  }
 
-    const padCount = newCapacity - this._buffer.length - relocateCount;
-
-    for (let i = 0; i < padCount; i++) {
-      this._buffer.push(undefined);
+  /**
+   * Resize the buffer to the requested size, which must be a power of 2
+   * `>= this.size`.
+   *
+   * @internal
+   */
+  _resizeTo(pow2Capacity: number): void {
+    if (this._head + this.size <= this._buffer.length) {
+      this._buffer.length = pow2Capacity;
+    } else {
+      const newBuffer = new Array<T | undefined>(pow2Capacity);
+      for (let i = 0; i < this.size; i++) {
+        newBuffer[i] = this._buffer[(this._head + i) & this._indexMask];
+      }
+      this._buffer = newBuffer;
+      this._head = 0;
     }
 
-    for (let i = 0; i < relocateCount; i++) {
-      const index = this._head + i;
-      this._buffer.push(this._buffer[index]);
-      this._buffer[index] = undefined;
-    }
-
-    if (relocateCount > 0) {
-      this._head = this._buffer.length - relocateCount;
-    }
+    this._indexMask = pow2Capacity - 1;
   }
 
   /**
    * Inserts a new element at the head.
    */
   addFirst(value: T): void {
-    this._ensureCapacity(this.size + 1);
-
-    let newHead = this._head - 1;
-    if (newHead < 0) {
-      newHead += this._buffer.length;
+    if (this.size === this._buffer.length) {
+      this._resizeTo(this._buffer.length << 1);
     }
+
+    const newHead = (this._head - 1) & this._indexMask;
     this._buffer[newHead] = value;
     this._head = newHead;
-
     (this as { size: number }).size++;
   }
 
@@ -118,24 +116,22 @@ class ArrayDeque<T> {
    * {@link ArrayDeque.enqueue}.
    */
   addLast(value: T): void {
-    this._ensureCapacity(this.size + 1);
+    if (this.size === this._buffer.length) {
+      this._resizeTo(this._buffer.length << 1);
+    }
 
-    const newTail = this._wrapRight(this.size);
+    const newTail = (this._head + this.size) & this._indexMask;
     this._buffer[newTail] = value;
-
     (this as { size: number }).size++;
   }
 
   /**
-   * Returns the element at the head. Equivalent to {@link ArrayDeque.at}(0).
+   * Returns the element at the head. Equivalent to {@link ArrayDeque.at}(0),
+   * but faster.
    *
    * @returns The element at the head, or undefined if the ArrayDeque is empty.
    */
   first(): T | undefined {
-    if (this.size === 0) {
-      return undefined;
-    }
-
     return this._buffer[this._head];
   }
 
@@ -147,29 +143,28 @@ class ArrayDeque<T> {
    * is empty.
    */
   removeFirst(): T | undefined {
+    // I tried using `this.size -= Math.sign(this.size)` to omit this branch,
+    // but that implementation was slower.
     if (this.size === 0) {
       return undefined;
     }
 
     const value = this._buffer[this._head];
     this._buffer[this._head] = undefined;
-    this._head = this._wrapRight(1);
-
+    this._head = (this._head + 1) & this._indexMask;
     (this as { size: number }).size--;
     return value;
   }
 
   /**
-   * Returns the element at the tail. Equivalent to {@link ArrayDeque.at}(-1).
+   * Returns the element at the tail. Equivalent to {@link ArrayDeque.at}(-1),
+   * but faster.
    *
    * @returns The element at the tail, or undefined if the ArrayDeque is empty.
    */
   last(): T | undefined {
-    if (this.size === 0) {
-      return undefined;
-    }
-
-    return this._buffer[this._tail()];
+    const tail = (this._head + this.size - 1) & this._indexMask;
+    return this._buffer[tail];
   }
 
   /**
@@ -183,10 +178,9 @@ class ArrayDeque<T> {
       return undefined;
     }
 
-    const tail = this._tail();
+    const tail = (this._head + this.size - 1) & this._indexMask;
     const value = this._buffer[tail];
     this._buffer[tail] = undefined;
-
     (this as { size: number }).size--;
     return value;
   }
@@ -202,18 +196,39 @@ class ArrayDeque<T> {
    * out of range.
    */
   at(index: number): T | undefined {
-    if (index >= this.size) {
+    if (index < -this.size || index >= this.size) {
       return undefined;
     }
 
     if (index < 0) {
       index += this.size;
-      if (index < 0) {
-        return undefined;
-      }
     }
 
-    return this._buffer[this._wrapRight(index)];
+    return this._buffer[(this._head + index) & this._indexMask];
+  }
+
+  /**
+   * Replaces the element at the specified index, where 0 is the head and higher
+   * indices move toward the tail.
+   *
+   * For negative indices, -1 is the tail and lower indices move toward the
+   * head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
+   *
+   * @returns The element at the specified index.
+   * @throws RangeError if the index is out of range.
+   */
+  set(index: number, value: T): void {
+    if (index < -this.size || index >= this.size) {
+      throw new RangeError(
+        `index ${index} out of range for ArrayDeque of size ${this.size}`,
+      );
+    }
+
+    if (index < 0) {
+      index += this.size;
+    }
+
+    this._buffer[(this._head + index) & this._indexMask] = value;
   }
 
   /**
@@ -253,6 +268,7 @@ class ArrayDeque<T> {
     (clone as { size: number }).size = this.size;
     clone._head = this._head;
     clone._buffer = this._buffer.slice();
+    clone._indexMask = this._indexMask;
     return clone;
   }
 
@@ -261,8 +277,11 @@ class ArrayDeque<T> {
    * to the tail.
    */
   toArray(): T[] {
-    // This could probably be optimized for better performance.
-    return Array.from(this);
+    const array = new Array<T>(this.size);
+    for (let i = 0; i < this.size; i++) {
+      array[i] = this._buffer[(this._head + i) & this._indexMask]!;
+    }
+    return array;
   }
 
   /**
@@ -285,10 +304,9 @@ class ArrayDequeIterator<T> implements IterableIterator<T> {
       return { done: true, value: undefined };
     }
 
-    const index = this._arrayDeque._wrapRight(this._index++);
     return {
       done: false,
-      value: this._arrayDeque._buffer[index]!,
+      value: this._arrayDeque.at(this._index++)!,
     };
   }
 
