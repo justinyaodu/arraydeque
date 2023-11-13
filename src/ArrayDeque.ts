@@ -3,18 +3,23 @@
  *
  * ArrayDeques support amortized constant-time insertion and removal at both
  * ends, and constant-time access to elements by index. Iterating over an
- * ArrayDeque returns elements sequentially from the head to the tail.
+ * ArrayDeque returns elements sequentially from the first element to the last.
  *
  * @public
  */
 class ArrayDeque<T> {
+  /**
+   * The maximum number of elements that an ArrayDeque can contain.
+   */
+  static readonly MAX_CAPACITY = Math.pow(2, 31);
+
   /**
    * The number of elements in the ArrayDeque.
    */
   readonly size: number;
 
   /**
-   * The index of the head. Always in [0, `this._buffer.length`).
+   * The index of the head. Always in [0, `_buffer.length`).
    *
    * @internal
    */
@@ -29,7 +34,7 @@ class ArrayDeque<T> {
   _buffer: (T | undefined)[];
 
   /**
-   * Used to wrap indices into the range [0, `this._buffer.length`). Always
+   * Used to wrap indices into the range [0, `_buffer.length`). Always
    * equal to `this._buffer.length - 1`.
    *
    * @internal
@@ -49,9 +54,10 @@ class ArrayDeque<T> {
     } else {
       pow2Capacity = 1;
       while (pow2Capacity < capacity) {
-        pow2Capacity <<= 1;
+        pow2Capacity *= 2;
       }
     }
+    this._assertCapacityValid(pow2Capacity);
 
     this.size = 0;
     this._head = 0;
@@ -73,16 +79,25 @@ class ArrayDeque<T> {
       pow2Capacity *= 2;
     } while (pow2Capacity < capacity);
 
-    this._resizeTo(pow2Capacity);
+    this._resize(pow2Capacity);
+  }
+
+  _assertCapacityValid(capacity: number) {
+    if (capacity > ArrayDeque.MAX_CAPACITY) {
+      const msg = `requested capacity of ${capacity} exceeds ArrayDeque.MAX_CAPACITY = ${ArrayDeque.MAX_CAPACITY}`;
+      throw new RangeError(msg);
+    }
   }
 
   /**
-   * Resize the buffer to the requested size, which must be a power of 2
+   * Resizes the buffer to the requested length, which must be a power of 2
    * `>= this.size`.
    *
    * @internal
    */
-  _resizeTo(pow2Capacity: number): void {
+  _resize(pow2Capacity: number): void {
+    this._assertCapacityValid(pow2Capacity);
+
     if (this._head + this.size <= this._buffer.length) {
       this._buffer.length = pow2Capacity;
     } else {
@@ -98,11 +113,14 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Inserts a new element at the head.
+   * Inserts a new element at the front.
+   *
+   * @throws RangeError if the ArrayDeque's size would exceed
+   * {@link ArrayDeque.MAX_CAPACITY}.
    */
-  addFirst(value: T): void {
+  unshift(value: T): void {
     if (this.size === this._buffer.length) {
-      this._resizeTo(this._buffer.length << 1);
+      this._resize(this._buffer.length * 2);
     }
 
     const newHead = (this._head - 1) & this._indexMask;
@@ -112,12 +130,14 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Inserts a new element at the tail. Equivalent to
-   * {@link ArrayDeque.enqueue}.
+   * Inserts a new element at the back.
+   *
+   * @throws RangeError if the ArrayDeque's size would exceed
+   * {@link ArrayDeque.MAX_CAPACITY}.
    */
-  addLast(value: T): void {
+  push(value: T): void {
     if (this.size === this._buffer.length) {
-      this._resizeTo(this._buffer.length << 1);
+      this._resize(this._buffer.length * 2);
     }
 
     const newTail = (this._head + this.size) & this._indexMask;
@@ -126,30 +146,58 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns the element at the head. Equivalent to {@link ArrayDeque.at}(0),
-   * but faster.
+   * Inserts a new element at the back. See {@link ArrayDeque.push}.
+   */
+  enqueue(value: T): void {
+    this.push(value);
+  }
+
+  /**
+   * Returns the first element without removing it.
    *
-   * @returns The element at the head, or undefined if the ArrayDeque is empty.
+   * Returns undefined if the ArrayDeque is empty. If you know the ArrayDeque
+   * is non-empty, consider {@link ArrayDeque.firstUnchecked}, which excludes
+   * undefined from the return type.
    */
   first(): T | undefined {
     return this._buffer[this._head];
   }
 
   /**
-   * Removes and returns the element at the head. Equivalent to
-   * {@link ArrayDeque.dequeue}.
+   * Returns the first element without removing it, assuming the ArrayDeque
+   * is non-empty.
    *
-   * @returns The element removed from the head, or undefined if the ArrayDeque
-   * is empty.
+   * Like {@link ArrayDeque.first}, but if the ArrayDeque is empty, the
+   * behavior is not defined.
    */
-  removeFirst(): T | undefined {
-    // I tried using `this.size -= Math.sign(this.size)` to omit this branch,
-    // but that implementation was slower.
+  firstUnchecked(): T {
+    return this.first()!;
+  }
+
+  /**
+   * Removes and returns the first element.
+   *
+   * Returns undefined if the ArrayDeque is empty. If you know the ArrayDeque
+   * is non-empty, consider {@link ArrayDeque.shiftUnchecked}, which excludes
+   * undefined from the return type and might be faster.
+   */
+  shift(): T | undefined {
     if (this.size === 0) {
       return undefined;
     }
 
-    const value = this._buffer[this._head];
+    return this.shiftUnchecked();
+  }
+
+  /**
+   * Removes and returns the first element, assuming the ArrayDeque is
+   * non-empty.
+   *
+   * This might be faster than {@link ArrayDeque.shift}, but if the ArrayDeque
+   * is empty, the behavior is not defined.
+   */
+  shiftUnchecked(): T {
+    const value = this._buffer[this._head]!;
     this._buffer[this._head] = undefined;
     this._head = (this._head + 1) & this._indexMask;
     (this as { size: number }).size--;
@@ -157,10 +205,26 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns the element at the tail. Equivalent to {@link ArrayDeque.at}(-1),
-   * but faster.
+   * Removes and returns the first element. See {@link ArrayDeque.shift}.
+   */
+  dequeue(): T | undefined {
+    return this.shift();
+  }
+
+  /**
+   * Removes and returns the first element, assuming the ArrayDeque is
+   * non-empty. See {@link ArrayDeque.shiftUnchecked}.
+   */
+  dequeueUnchecked(): T {
+    return this.shiftUnchecked();
+  }
+
+  /**
+   * Returns the last element without removing it.
    *
-   * @returns The element at the tail, or undefined if the ArrayDeque is empty.
+   * Returns undefined if the ArrayDeque is empty. If you know the ArrayDeque
+   * is non-empty, consider {@link ArrayDeque.lastUnchecked}, which excludes
+   * undefined from the return type.
    */
   last(): T | undefined {
     const tail = (this._head + this.size - 1) & this._indexMask;
@@ -168,21 +232,49 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Removes and returns the element at the tail.
+   * Returns the last element without removing it, assuming the ArrayDeque is
+   * non-empty. See {@link ArrayDeque.last}.
    *
-   * @returns The element removed from the tail, or undefined if the
-   * ArrayDeque is empty.
+   * If the ArrayDeque is empty, the behavior is undefined.
    */
-  removeLast(): T | undefined {
+  lastUnchecked(): T {
+    return this.last()!;
+  }
+
+  /**
+   * Removes and returns the last element.
+   *
+   * Returns undefined if the ArrayDeque is empty. If you know the ArrayDeque
+   * is non-empty, consider {@link ArrayDeque.popUnchecked}, which excludes
+   * undefined from the return type and might be faster.
+   */
+  pop(): T | undefined {
     if (this.size === 0) {
       return undefined;
     }
 
+    return this.popUnchecked();
+  }
+
+  /**
+   * Removes and returns the last element, assuming the ArrayDeque is non-empty.
+   *
+   * This might be faster than {@link ArrayDeque.pop}, but if the ArrayDeque is
+   * empty, the behavior is not defined.
+   */
+  popUnchecked(): T {
     const tail = (this._head + this.size - 1) & this._indexMask;
-    const value = this._buffer[tail];
+    const value = this._buffer[tail]!;
     this._buffer[tail] = undefined;
     (this as { size: number }).size--;
     return value;
+  }
+
+  /**
+   * Returns the element at the specified index. See {@link ArrayDeque.get}.
+   */
+  at(index: number): T | undefined {
+    return this.get(index);
   }
 
   /**
@@ -192,19 +284,45 @@ class ArrayDeque<T> {
    * For negative indices, -1 is the tail and lower indices move toward the
    * head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
    *
-   * @returns The element at the specified index, or undefined if the index is
-   * out of range.
+   * Returns undefined if the index is out of range. If you know the index is
+   * in range, consider {@link ArrayDeque.getUnchecked} or
+   * {@link ArrayDeque.getNonNegativeUnchecked}, which exclude undefined from
+   * the return type and might be faster.
+   *
+   * If the index is not an integer, the behavior is not defined.
    */
-  at(index: number): T | undefined {
+  get(index: number): T | undefined {
     if (index < -this.size || index >= this.size) {
       return undefined;
     }
 
+    return this.getUnchecked(index);
+  }
+
+  /**
+   * Returns the element at the specified index, assuming that the index is
+   * in [-size, size). See {@link ArrayDeque.get}.
+   *
+   * If the index is not an integer in the required range, the behavior is not
+   * defined.
+   */
+  getUnchecked(index: number): T {
     if (index < 0) {
       index += this.size;
     }
 
-    return this._buffer[(this._head + index) & this._indexMask];
+    return this.getNonNegativeUnchecked(index);
+  }
+
+  /**
+   * Returns the element at the specified index, assuming that the index is
+   * in [0, size). See {@link ArrayDeque.get}.
+   *
+   * If the index is not an integer in the required range, the behavior is not
+   * defined.
+   */
+  getNonNegativeUnchecked(index: number): T {
+    return this._buffer[(this._head + index) & this._indexMask]!;
   }
 
   /**
@@ -214,39 +332,45 @@ class ArrayDeque<T> {
    * For negative indices, -1 is the tail and lower indices move toward the
    * head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
    *
-   * @returns The element at the specified index.
-   * @throws RangeError if the index is out of range.
+   * If the index is not an integer, the behavior is not defined.
+   *
+   * Throws RangeError if the index is out of range. If you know the index is in
+   * range, consider {@link ArrayDeque.setUnchecked} or
+   * {@link ArrayDeque.setNonNegativeUnchecked}, which might be faster.
    */
   set(index: number, value: T): void {
     if (index < -this.size || index >= this.size) {
-      throw new RangeError(
-        `index ${index} out of range for ArrayDeque of size ${this.size}`,
-      );
+      const msg = `index ${index} out of range for ArrayDeque of size ${this.size}`;
+      throw new RangeError(msg);
     }
 
+    this.setUnchecked(index, value);
+  }
+
+  /**
+   * Replaces the element at the specified index, assuming that the index is in
+   * [-size, size). See {@link ArrayDeque.set}.
+   *
+   * If the index is not an integer in the required range, the behavior is not
+   * defined.
+   */
+  setUnchecked(index: number, value: T): void {
     if (index < 0) {
       index += this.size;
     }
 
-    this._buffer[(this._head + index) & this._indexMask] = value;
+    this.setNonNegativeUnchecked(index, value);
   }
 
   /**
-   * Inserts a new element at the tail. Equivalent to {@link ArrayDeque.addLast}.
-   */
-  enqueue(value: T): void {
-    this.addLast(value);
-  }
-
-  /**
-   * Removes and returns the element at the head. Equivalent to
-   * {@link ArrayDeque.removeFirst}.
+   * Replaces the element at the specified index, assuming that the index is in
+   * [0, size). See {@link ArrayDeque.set}.
    *
-   * @returns The element removed from the head, or undefined if the ArrayDeque
-   * is empty.
+   * If the index is not an integer in the required range, the behavior is not
+   * defined.
    */
-  dequeue(): T | undefined {
-    return this.removeFirst();
+  setNonNegativeUnchecked(index: number, value: T): void {
+    this._buffer[(this._head + index) & this._indexMask] = value;
   }
 
   /**
@@ -261,7 +385,7 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns a shallow copy of this ArrayDeque.
+   * Returns a shallow copy of this ArrayDeque with the same capacity.
    */
   clone(): ArrayDeque<T> {
     const clone = new ArrayDeque<T>();
@@ -273,10 +397,14 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns an array containing the elements in this ArrayDeque, from the head
-   * to the tail.
+   * Returns an array containing the elements of this ArrayDeque in the same
+   * order.
    */
   toArray(): T[] {
+    if (this._head + this.size <= this._buffer.length) {
+      return this._buffer.slice(this._head, this._head + this.size) as T[];
+    }
+
     const array = new Array<T>(this.size);
     for (let i = 0; i < this.size; i++) {
       array[i] = this._buffer[(this._head + i) & this._indexMask]!;
@@ -306,7 +434,7 @@ class ArrayDequeIterator<T> implements IterableIterator<T> {
 
     return {
       done: false,
-      value: this._arrayDeque.at(this._index++)!,
+      value: this._arrayDeque.getNonNegativeUnchecked(this._index++),
     };
   }
 

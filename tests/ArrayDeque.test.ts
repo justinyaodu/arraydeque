@@ -171,7 +171,7 @@ describe("addFirst", () => {
   test("empty", () => {
     for (let capacity = 1; capacity <= 16; capacity *= 2) {
       const deque = new TestArrayDeque(capacity);
-      deque.addFirst(10);
+      deque.unshift(10);
       deque.assertEqual({
         size: 1,
         _head: capacity - 1,
@@ -187,7 +187,7 @@ describe("addFirst", () => {
       _buffer: [undefined, 20, 30, 40],
     });
 
-    deque.addFirst(10);
+    deque.unshift(10);
     deque.assertEqual({
       size: 4,
       _head: 0,
@@ -202,7 +202,7 @@ describe("addFirst", () => {
       _buffer: [undefined, undefined, 20, 30],
     });
 
-    deque.addFirst(10);
+    deque.unshift(10);
     deque.assertEqual({
       size: 3,
       _head: 1,
@@ -217,7 +217,7 @@ describe("addFirst", () => {
       _buffer: [20, 30, undefined, undefined],
     });
 
-    deque.addFirst(10);
+    deque.unshift(10);
     deque.assertEqual({
       size: 3,
       _head: 3,
@@ -232,7 +232,7 @@ describe("addFirst", () => {
       _buffer: [20, 30],
     });
 
-    deque.addFirst(10);
+    deque.unshift(10);
     deque.assertEqual({
       size: 3,
       _head: 3,
@@ -247,7 +247,7 @@ describe("addFirst", () => {
       _buffer: [40, 50, 20, 30],
     });
 
-    deque.addFirst(10);
+    deque.unshift(10);
     deque.assertEqual({
       size: 5,
       _head: 7,
@@ -407,7 +407,7 @@ describe("removeLast", () => {
     for (let capacity = 1; capacity <= 16; capacity++) {
       const deque = new TestArrayDeque(capacity);
 
-      expect(deque.removeLast()).toStrictEqual(undefined);
+      expect(deque.pop()).toStrictEqual(undefined);
       deque.assertEqual(new TestArrayDeque(capacity));
     }
   });
@@ -419,7 +419,7 @@ describe("removeLast", () => {
       _buffer: [30, undefined, 10, 20],
     });
 
-    expect(deque.removeLast()).toStrictEqual(30);
+    expect(deque.pop()).toStrictEqual(30);
     deque.assertEqual({
       size: 2,
       _head: 2,
@@ -434,7 +434,7 @@ describe("removeLast", () => {
       _buffer: [10, 20, 30, undefined],
     });
 
-    expect(deque.removeLast()).toStrictEqual(30);
+    expect(deque.pop()).toStrictEqual(30);
     deque.assertEqual({
       size: 2,
       _head: 0,
@@ -449,7 +449,7 @@ describe("removeLast", () => {
       _buffer: [10, 20],
     });
 
-    expect(deque.removeLast()).toStrictEqual(20);
+    expect(deque.pop()).toStrictEqual(20);
     deque.assertEqual({
       size: 1,
       _head: 0,
@@ -480,10 +480,12 @@ describe("at, first, last, testToArray, set", () => {
     });
 
     expect(deque.first()).toStrictEqual(10);
+    expect(deque.firstUnchecked()).toStrictEqual(10);
     expect(deque.at(1)).toStrictEqual(20);
     expect(deque.at(2)).toStrictEqual(30);
     expect(deque.at(3)).toStrictEqual(undefined);
     expect(deque.last()).toStrictEqual(30);
+    expect(deque.lastUnchecked()).toStrictEqual(30);
     expect(deque.at(-2)).toStrictEqual(20);
     expect(deque.at(-3)).toStrictEqual(10);
     expect(deque.at(-4)).toStrictEqual(undefined);
@@ -524,10 +526,12 @@ describe("at, first, last, testToArray, set", () => {
     });
 
     expect(deque.first()).toStrictEqual(10);
+    expect(deque.firstUnchecked()).toStrictEqual(10);
     expect(deque.at(1)).toStrictEqual(20);
     expect(deque.at(2)).toStrictEqual(30);
     expect(deque.at(3)).toStrictEqual(undefined);
     expect(deque.last()).toStrictEqual(30);
+    expect(deque.lastUnchecked()).toStrictEqual(30);
     expect(deque.at(-2)).toStrictEqual(20);
     expect(deque.at(-3)).toStrictEqual(10);
     expect(deque.at(-4)).toStrictEqual(undefined);
@@ -568,11 +572,13 @@ describe("at, first, last, testToArray, set", () => {
     });
 
     expect(deque.first()).toStrictEqual(10);
+    expect(deque.firstUnchecked()).toStrictEqual(10);
     expect(deque.at(1)).toStrictEqual(20);
     expect(deque.at(2)).toStrictEqual(30);
     expect(deque.at(3)).toStrictEqual(40);
     expect(deque.at(4)).toStrictEqual(undefined);
     expect(deque.last()).toStrictEqual(40);
+    expect(deque.lastUnchecked()).toStrictEqual(40);
     expect(deque.at(-2)).toStrictEqual(30);
     expect(deque.at(-3)).toStrictEqual(20);
     expect(deque.at(-4)).toStrictEqual(10);
@@ -616,11 +622,13 @@ describe("at, first, last, testToArray, set", () => {
     });
 
     expect(deque.first()).toStrictEqual(10);
+    expect(deque.firstUnchecked()).toStrictEqual(10);
     expect(deque.at(1)).toStrictEqual(20);
     expect(deque.at(2)).toStrictEqual(30);
     expect(deque.at(3)).toStrictEqual(40);
     expect(deque.at(4)).toStrictEqual(undefined);
     expect(deque.last()).toStrictEqual(40);
+    expect(deque.lastUnchecked()).toStrictEqual(40);
     expect(deque.at(-2)).toStrictEqual(30);
     expect(deque.at(-3)).toStrictEqual(20);
     expect(deque.at(-4)).toStrictEqual(10);
@@ -673,5 +681,77 @@ describe("clone", () => {
     buffer[0] = 10;
     expect(clone._buffer).toStrictEqual(buffer);
     expect(clone._indexMask).toStrictEqual(1);
+  });
+});
+
+describe("maximum capacity", () => {
+  // Hack to avoid running out of memory when running tests.
+  (ArrayDeque as { MAX_CAPACITY: number }).MAX_CAPACITY = Math.pow(2, 10);
+
+  test("constructor", () => {
+    new TestArrayDeque(ArrayDeque.MAX_CAPACITY).assertEqual({
+      size: 0,
+      _head: 0,
+      _buffer: empty(ArrayDeque.MAX_CAPACITY),
+    });
+
+    new TestArrayDeque(ArrayDeque.MAX_CAPACITY - 1).assertEqual({
+      size: 0,
+      _head: 0,
+      _buffer: empty(ArrayDeque.MAX_CAPACITY),
+    });
+
+    expect(() => new TestArrayDeque(ArrayDeque.MAX_CAPACITY + 1)).toThrow(
+      RangeError,
+    );
+  });
+
+  test("ensureCapacity", () => {
+    const deque = new TestArrayDeque();
+
+    deque.ensureCapacity(ArrayDeque.MAX_CAPACITY - 1);
+    deque.assertEqual({
+      size: 0,
+      _head: 0,
+      _buffer: empty(ArrayDeque.MAX_CAPACITY),
+    });
+
+    deque.ensureCapacity(ArrayDeque.MAX_CAPACITY);
+    deque.assertEqual({
+      size: 0,
+      _head: 0,
+      _buffer: empty(ArrayDeque.MAX_CAPACITY),
+    });
+
+    expect(() => {
+      deque.ensureCapacity(ArrayDeque.MAX_CAPACITY + 1);
+    }).toThrow(RangeError);
+    deque.assertEqual({
+      size: 0,
+      _head: 0,
+      _buffer: empty(ArrayDeque.MAX_CAPACITY),
+    });
+  });
+
+  test("push, unshift", () => {
+    const deque = new TestArrayDeque();
+    const array = [];
+
+    for (let i = 0; i < ArrayDeque.MAX_CAPACITY; i++) {
+      deque.push(i);
+      array.push(i);
+    }
+
+    expect(deque.testToArray()).toStrictEqual(array);
+
+    expect(() => {
+      deque.push(null);
+    }).toThrow(RangeError);
+    expect(deque.testToArray()).toStrictEqual(array);
+
+    expect(() => {
+      deque.unshift(null);
+    }).toThrow(RangeError);
+    expect(deque.testToArray()).toStrictEqual(array);
   });
 });

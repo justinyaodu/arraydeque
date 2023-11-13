@@ -1,7 +1,7 @@
 import Benchmark from "benchmark";
 import Denque from "denque";
 import Deque from "double-ended-queue";
-import { ArrayDeque as ArrayDeque } from "superlative-queues";
+import { ArrayDeque } from "superlative-queues";
 
 const suiteOptions = {
   onStart(e) {
@@ -42,18 +42,26 @@ function setupDeque(n) {
 function setupArrayDeque(n) {
   const arrayDeque = new ArrayDeque();
   for (let i = 0; i < n; i++) {
-    arrayDeque.addLast(i);
+    arrayDeque.push(i);
   }
   return arrayDeque;
 }
 
-function setupAll(n) {
-  return {
-    array: setupArray(n),
-    denque: setupDenque(n),
-    deque: setupDeque(n),
-    arrayDeque: setupArrayDeque(n),
-  };
+function setupAll(n, rotate = false) {
+  const array = setupArray(n);
+  const denque = setupDenque(n);
+  const deque = setupDeque(n);
+  const arrayDeque = setupArrayDeque(n);
+
+  if (rotate) {
+    for (let i = 0; i < n / 2; i++) {
+      denque.push(denque.shift());
+      deque.push(deque.shift());
+      arrayDeque.push(arrayDeque.shift());
+    }
+  }
+
+  return { array, denque, deque, arrayDeque };
 }
 
 function threeEnqueueThreeDequeue(size) {
@@ -85,12 +93,20 @@ function threeEnqueueThreeDequeue(size) {
       deque.shift();
     })
     .add("superlative-queues", () => {
-      arrayDeque.addLast(1);
-      arrayDeque.addLast(2);
-      arrayDeque.addLast(3);
-      arrayDeque.removeFirst();
-      arrayDeque.removeFirst();
-      arrayDeque.removeFirst();
+      arrayDeque.push(1);
+      arrayDeque.push(2);
+      arrayDeque.push(3);
+      arrayDeque.shift();
+      arrayDeque.shift();
+      arrayDeque.shift();
+    })
+    .add("superlative-queues unchecked", () => {
+      arrayDeque.push(1);
+      arrayDeque.push(2);
+      arrayDeque.push(3);
+      arrayDeque.shiftUnchecked();
+      arrayDeque.shiftUnchecked();
+      arrayDeque.shiftUnchecked();
     });
 }
 
@@ -123,12 +139,20 @@ function threePushThreePop(size) {
       deque.pop();
     })
     .add("superlative-queues", () => {
-      arrayDeque.addLast(1);
-      arrayDeque.addLast(2);
-      arrayDeque.addLast(3);
-      arrayDeque.removeFirst();
-      arrayDeque.removeFirst();
-      arrayDeque.removeFirst();
+      arrayDeque.push(1);
+      arrayDeque.push(2);
+      arrayDeque.push(3);
+      arrayDeque.shift();
+      arrayDeque.shift();
+      arrayDeque.shift();
+    })
+    .add("superlative-queues unchecked", () => {
+      arrayDeque.push(1);
+      arrayDeque.push(2);
+      arrayDeque.push(3);
+      arrayDeque.shiftUnchecked();
+      arrayDeque.shiftUnchecked();
+      arrayDeque.shiftUnchecked();
     });
 }
 
@@ -158,10 +182,119 @@ function pushUnshiftPopShift(size) {
       deque.shift();
     })
     .add("superlative-queues", () => {
-      arrayDeque.addLast(1);
-      arrayDeque.addFirst(2);
-      arrayDeque.removeLast();
-      arrayDeque.removeFirst();
+      arrayDeque.push(1);
+      arrayDeque.unshift(2);
+      arrayDeque.pop();
+      arrayDeque.shift();
+    })
+    .add("superlative-queues unchecked", () => {
+      arrayDeque.push(1);
+      arrayDeque.unshift(2);
+      arrayDeque.popUnchecked();
+      arrayDeque.shiftUnchecked();
+    });
+}
+
+function toArray(size, contiguous) {
+  const { array, denque, deque, arrayDeque } = setupAll(size, !contiguous);
+
+  return new Benchmark.Suite(
+    `size ${size}: toArray, ${contiguous ? "" : "not "}contiguous`,
+    suiteOptions,
+  )
+    .add("array", () => {
+      array.slice();
+    })
+    .add("denque", () => {
+      denque.toArray();
+    })
+    .add("double-ended-queue", () => {
+      deque.toArray();
+    })
+    .add("superlative-queues", () => {
+      arrayDeque.toArray();
+    });
+}
+
+function positiveIndexing(size) {
+  const { array, denque, deque, arrayDeque } = setupAll(size, true);
+
+  return new Benchmark.Suite(`size ${size}: positive indexing`, suiteOptions)
+    .add("array", () => {
+      let sum = 0;
+      for (let i = 0; i < array.length; i++) {
+        sum += array[i];
+      }
+      return sum;
+    })
+    .add("denque", () => {
+      let sum = 0;
+      for (let i = 0; i < denque.length; i++) {
+        sum += denque.get(i);
+      }
+      return sum;
+    })
+    .add("double-ended-queue", () => {
+      let sum = 0;
+      for (let i = 0; i < deque.length; i++) {
+        sum += deque.get(i);
+      }
+      return sum;
+    })
+    .add("superlative-queues", () => {
+      let sum = 0;
+      for (let i = 0; i < arrayDeque.size; i++) {
+        sum += arrayDeque.get(i);
+      }
+      return sum;
+    })
+    .add("superlative-queues unchecked", () => {
+      let sum = 0;
+      for (let i = 0; i < arrayDeque.size; i++) {
+        sum += arrayDeque.getNonNegativeUnchecked(i);
+      }
+      return sum;
+    });
+}
+
+function negativeIndexing(size) {
+  const { array, denque, deque, arrayDeque } = setupAll(size, true);
+
+  return new Benchmark.Suite(`size ${size}: negative indexing`, suiteOptions)
+    .add("array", () => {
+      let sum = 0;
+      for (let i = -1; i >= -array.length; i--) {
+        sum += array.at(i);
+      }
+      return sum;
+    })
+    .add("denque", () => {
+      let sum = 0;
+      for (let i = -1; i >= -denque.length; i--) {
+        sum += denque.get(i);
+      }
+      return sum;
+    })
+    .add("double-ended-queue", () => {
+      let sum = 0;
+      for (let i = -1; i >= -deque.length; i--) {
+        sum += deque.get(i);
+      }
+      return sum;
+    })
+    .add("superlative-queues", () => {
+      let sum = 0;
+      for (let i = -1; i >= -arrayDeque.size; i--) {
+        sum += arrayDeque.get(i);
+      }
+      return sum;
+    })
+    .add("superlative-queues unchecked", () => {
+      let sum = 0;
+      for (let i = -1; i >= -arrayDeque.size; i--) {
+        sum += arrayDeque.getUnchecked(i);
+      }
+      return sum;
     });
 }
 
@@ -201,15 +334,21 @@ const suites = [
         }
       })
       .add("double-ended-queue", () => {
-        const doubleEndedQueue = setupDeque(iterations);
-        while (!doubleEndedQueue.isEmpty()) {
-          doubleEndedQueue.shift();
+        const deque = setupDeque(iterations);
+        while (!deque.isEmpty()) {
+          deque.shift();
         }
       })
       .add("superlative-queues", () => {
-        const superlativeQueues = setupArrayDeque(iterations);
-        while (superlativeQueues.size > 0) {
-          superlativeQueues.removeFirst();
+        const arrayDeque = setupArrayDeque(iterations);
+        while (arrayDeque.size > 0) {
+          arrayDeque.shift();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = setupArrayDeque(iterations);
+        while (arrayDeque.size > 0) {
+          arrayDeque.shiftUnchecked();
         }
       });
   })(),
@@ -223,28 +362,39 @@ const suites = [
         const array = [];
         for (let i = 0; i < iterations; i++) {
           array.push(i);
-          array.push(array.shift());
+          array.push(i);
+          array.shift();
         }
       })
       .add("denque", () => {
         const denque = new Denque();
         for (let i = 0; i < iterations; i++) {
           denque.push(i);
-          denque.push(denque.shift());
+          denque.push(i);
+          denque.shift();
         }
       })
       .add("double-ended-queue", () => {
         const deque = new Deque();
         for (let i = 0; i < iterations; i++) {
           deque.push(i);
-          deque.push(deque.shift());
+          deque.push(i);
+          deque.shift();
         }
       })
       .add("superlative-queues", () => {
         const arrayDeque = new ArrayDeque();
         for (let i = 0; i < iterations; i++) {
-          arrayDeque.addLast(i);
-          arrayDeque.addLast(arrayDeque.removeFirst());
+          arrayDeque.push(i);
+          arrayDeque.push(i);
+          arrayDeque.shift();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = new ArrayDeque();
+        for (let i = 0; i < iterations; i++) {
+          arrayDeque.push(i);
+          arrayDeque.push(arrayDeque.shiftUnchecked());
         }
       });
   })(),
@@ -258,7 +408,8 @@ const suites = [
         const array = [];
         for (let i = 0; i < iterations; i++) {
           array.push(i);
-          array.push(array.shift());
+          array.push(i);
+          array.shift();
         }
         while (array.length > 0) {
           array.shift();
@@ -268,7 +419,8 @@ const suites = [
         const denque = new Denque();
         for (let i = 0; i < iterations; i++) {
           denque.push(i);
-          denque.push(denque.shift());
+          denque.push(i);
+          denque.shift();
         }
         while (!denque.isEmpty()) {
           denque.shift();
@@ -278,7 +430,8 @@ const suites = [
         const deque = new Deque();
         for (let i = 0; i < iterations; i++) {
           deque.push(i);
-          deque.push(deque.shift());
+          deque.push(i);
+          deque.shift();
         }
         while (!deque.isEmpty()) {
           deque.shift();
@@ -287,11 +440,22 @@ const suites = [
       .add("superlative-queues", () => {
         const arrayDeque = new ArrayDeque();
         for (let i = 0; i < iterations; i++) {
-          arrayDeque.addLast(i);
-          arrayDeque.addLast(arrayDeque.removeFirst());
+          arrayDeque.push(i);
+          arrayDeque.push(i);
+          arrayDeque.shift();
         }
         while (arrayDeque.size > 0) {
-          arrayDeque.removeFirst();
+          arrayDeque.shift();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = new ArrayDeque();
+        for (let i = 0; i < iterations; i++) {
+          arrayDeque.push(i);
+          arrayDeque.push(arrayDeque.shiftUnchecked());
+        }
+        while (arrayDeque.size > 0) {
+          arrayDeque.shiftUnchecked();
         }
       });
   })(),
@@ -316,15 +480,21 @@ const suites = [
         }
       })
       .add("double-ended-queue", () => {
-        const doubleEndedQueue = setupDeque(iterations);
-        while (!doubleEndedQueue.isEmpty()) {
-          doubleEndedQueue.pop();
+        const deque = setupDeque(iterations);
+        while (!deque.isEmpty()) {
+          deque.pop();
         }
       })
       .add("superlative-queues", () => {
-        const superlativeQueues = setupArrayDeque(iterations);
-        while (superlativeQueues.size > 0) {
-          superlativeQueues.removeLast();
+        const arrayDeque = setupArrayDeque(iterations);
+        while (arrayDeque.size > 0) {
+          arrayDeque.pop();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = setupArrayDeque(iterations);
+        while (arrayDeque.size > 0) {
+          arrayDeque.popUnchecked();
         }
       });
   })(),
@@ -361,9 +531,17 @@ const suites = [
       .add("superlative-queues", () => {
         const arrayDeque = new ArrayDeque();
         for (let i = 0; i < iterations; i++) {
-          arrayDeque.addLast(i);
-          arrayDeque.addLast(i);
-          arrayDeque.removeLast();
+          arrayDeque.push(i);
+          arrayDeque.push(i);
+          arrayDeque.pop();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = new ArrayDeque();
+        for (let i = 0; i < iterations; i++) {
+          arrayDeque.push(i);
+          arrayDeque.push(i);
+          arrayDeque.popUnchecked();
         }
       });
   })(),
@@ -409,12 +587,23 @@ const suites = [
       .add("superlative-queues", () => {
         const arrayDeque = new ArrayDeque();
         for (let i = 0; i < iterations; i++) {
-          arrayDeque.addLast(i);
-          arrayDeque.addLast(i);
-          arrayDeque.removeLast();
+          arrayDeque.push(i);
+          arrayDeque.push(i);
+          arrayDeque.pop();
         }
         while (arrayDeque.size > 0) {
-          arrayDeque.removeLast();
+          arrayDeque.pop();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = new ArrayDeque();
+        for (let i = 0; i < iterations; i++) {
+          arrayDeque.push(i);
+          arrayDeque.push(i);
+          arrayDeque.popUnchecked();
+        }
+        while (arrayDeque.size > 0) {
+          arrayDeque.popUnchecked();
         }
       });
   })(),
@@ -462,12 +651,23 @@ const suites = [
       .add("superlative-queues", () => {
         const arrayDeque = new ArrayDeque();
         for (let i = 0; i < iterations; i++) {
-          arrayDeque.addLast(i);
-          arrayDeque.addFirst(i);
-          arrayDeque.addLast(i);
-          arrayDeque.addFirst(i);
-          arrayDeque.removeLast();
-          arrayDeque.removeFirst();
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.pop();
+          arrayDeque.shift();
+        }
+      })
+      .add("superlative-queues", () => {
+        const arrayDeque = new ArrayDeque();
+        for (let i = 0; i < iterations; i++) {
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.popUnchecked();
+          arrayDeque.shiftUnchecked();
         }
       });
   })(),
@@ -525,21 +725,44 @@ const suites = [
       .add("superlative-queues", () => {
         const arrayDeque = new ArrayDeque();
         for (let i = 0; i < iterations; i++) {
-          arrayDeque.addLast(i);
-          arrayDeque.addFirst(i);
-          arrayDeque.addLast(i);
-          arrayDeque.addFirst(i);
-          arrayDeque.removeLast();
-          arrayDeque.removeFirst();
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.pop();
+          arrayDeque.shift();
         }
         while (arrayDeque.size > 0) {
-          arrayDeque.removeLast();
-          arrayDeque.removeFirst();
+          arrayDeque.pop();
+          arrayDeque.shift();
+        }
+      })
+      .add("superlative-queues unchecked", () => {
+        const arrayDeque = new ArrayDeque();
+        for (let i = 0; i < iterations; i++) {
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.push(i);
+          arrayDeque.unshift(i);
+          arrayDeque.popUnchecked();
+          arrayDeque.shiftUnchecked();
+        }
+        while (arrayDeque.size > 0) {
+          arrayDeque.popUnchecked();
+          arrayDeque.shiftUnchecked();
         }
       });
   })(),
   pushUnshiftPopShift(1000),
   pushUnshiftPopShift(2000000),
+  toArray(1000, true),
+  toArray(1000, false),
+  toArray(2000000, true),
+  toArray(2000000, false),
+  positiveIndexing(1000),
+  positiveIndexing(2000000),
+  negativeIndexing(1000),
+  negativeIndexing(2000000),
 ];
 
 suites.forEach((s) => {

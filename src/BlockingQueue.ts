@@ -34,7 +34,7 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
    */
   enqueue(value: T): void {
     if (this._resolves.size > 0) {
-      this._resolves.dequeue()!(value);
+      this._resolves.dequeueUnchecked()(value);
     } else {
       this._values.enqueue(value);
     }
@@ -51,7 +51,7 @@ class BlockingQueue<T = any> implements AsyncIterable<T> {
    */
   dequeue(): Promise<T> {
     if (this._values.size > 0) {
-      return Promise.resolve(this._values.dequeue()!);
+      return Promise.resolve(this._values.dequeueUnchecked());
     } else {
       return new Promise<T>((resolve) => {
         this._resolves.enqueue(resolve);
