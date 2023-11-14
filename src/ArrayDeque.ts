@@ -3,11 +3,11 @@
  *
  * ArrayDeques support amortized constant-time insertion and removal at both
  * ends, and constant-time access to elements by index. Iterating over an
- * ArrayDeque returns elements sequentially from the first element to the last.
+ * ArrayDeque returns the elements sequentially.
  *
  * @public
  */
-class ArrayDeque<T> {
+class ArrayDeque<T> implements Iterable<T> {
   /**
    * The maximum number of elements that an ArrayDeque can contain.
    */
@@ -42,10 +42,7 @@ class ArrayDeque<T> {
   _indexMask: number;
 
   /**
-   * Constructs an empty ArrayDeque.
-   *
-   * @param capacity - If specified, ensure that the ArrayDeque can grow to this
-   * size without additional allocations in the future.
+   * Constructs an empty ArrayDeque, optionally specifying the initial capacity.
    */
   constructor(capacity?: number) {
     let pow2Capacity;
@@ -82,6 +79,11 @@ class ArrayDeque<T> {
     this._resize(pow2Capacity);
   }
 
+  /**
+   * Asserts that a capacity value is valid.
+   *
+   * @internal
+   */
   _assertCapacityValid(capacity: number) {
     if (capacity > ArrayDeque.MAX_CAPACITY) {
       const msg = `requested capacity of ${capacity} exceeds ArrayDeque.MAX_CAPACITY = ${ArrayDeque.MAX_CAPACITY}`;
@@ -115,7 +117,7 @@ class ArrayDeque<T> {
   /**
    * Inserts a new element at the front.
    *
-   * @throws RangeError if the ArrayDeque's size would exceed
+   * Throws RangeError if the ArrayDeque's size would exceed
    * {@link ArrayDeque.MAX_CAPACITY}.
    */
   unshift(value: T): void {
@@ -132,7 +134,7 @@ class ArrayDeque<T> {
   /**
    * Inserts a new element at the back.
    *
-   * @throws RangeError if the ArrayDeque's size would exceed
+   * Throws RangeError if the ArrayDeque's size would exceed
    * {@link ArrayDeque.MAX_CAPACITY}.
    */
   push(value: T): void {
@@ -278,11 +280,8 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns the element at the specified index, where 0 is the head and higher
-   * indices move toward the tail.
-   *
-   * For negative indices, -1 is the tail and lower indices move toward the
-   * head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
+   * Returns the element at the specified index. Negative indices count from the
+   * end, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
    *
    * Returns undefined if the index is out of range. If you know the index is
    * in range, consider {@link ArrayDeque.getUnchecked} or
@@ -301,7 +300,7 @@ class ArrayDeque<T> {
 
   /**
    * Returns the element at the specified index, assuming that the index is
-   * in [-size, size). See {@link ArrayDeque.get}.
+   * in `[-size, size)`. See {@link ArrayDeque.get}.
    *
    * If the index is not an integer in the required range, the behavior is not
    * defined.
@@ -316,7 +315,7 @@ class ArrayDeque<T> {
 
   /**
    * Returns the element at the specified index, assuming that the index is
-   * in [0, size). See {@link ArrayDeque.get}.
+   * in `[0, size)`. See {@link ArrayDeque.get}.
    *
    * If the index is not an integer in the required range, the behavior is not
    * defined.
@@ -326,17 +325,14 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Replaces the element at the specified index, where 0 is the head and higher
-   * indices move toward the tail.
-   *
-   * For negative indices, -1 is the tail and lower indices move toward the
-   * head, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
-   *
-   * If the index is not an integer, the behavior is not defined.
+   * Replaces the element at the specified index. Negative indices count from
+   * the end, like [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at).
    *
    * Throws RangeError if the index is out of range. If you know the index is in
    * range, consider {@link ArrayDeque.setUnchecked} or
    * {@link ArrayDeque.setNonNegativeUnchecked}, which might be faster.
+   *
+   * If the index is not an integer, the behavior is not defined.
    */
   set(index: number, value: T): void {
     if (index < -this.size || index >= this.size) {
@@ -349,7 +345,7 @@ class ArrayDeque<T> {
 
   /**
    * Replaces the element at the specified index, assuming that the index is in
-   * [-size, size). See {@link ArrayDeque.set}.
+   * `[-size, size)`. See {@link ArrayDeque.set}.
    *
    * If the index is not an integer in the required range, the behavior is not
    * defined.
@@ -364,7 +360,7 @@ class ArrayDeque<T> {
 
   /**
    * Replaces the element at the specified index, assuming that the index is in
-   * [0, size). See {@link ArrayDeque.set}.
+   * `[0, size)`. See {@link ArrayDeque.set}.
    *
    * If the index is not an integer in the required range, the behavior is not
    * defined.
@@ -374,8 +370,7 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Returns an iterator that returns elements sequentially, from the head to
-   * the tail.
+   * Returns an iterator that returns elements sequentially.
    *
    * The ArrayDeque must not be modified while the iterator is in use.
    * Otherwise, the behavior of the iterator is not defined.
@@ -413,7 +408,8 @@ class ArrayDeque<T> {
   }
 
   /**
-   * Equivalent to {@link ArrayDeque.toArray}.
+   * Returns an array containing the elements of this ArrayDeque in the same
+   * order. Equivalent to {@link ArrayDeque.toArray}.
    */
   toJSON(): T[] {
     return this.toArray();

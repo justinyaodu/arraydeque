@@ -9,25 +9,33 @@ import { ArrayDeque } from "./ArrayDeque.js";
  *
  * Iterating over a BlockingQueue with [for await...of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of)
  * dequeues and returns elements in the order they were inserted. This loop will
- * run forever unless you `break` out of it, because there is no way to know
+ * run forever unless you break out of it, because there is no way to know
  * whether another element will be inserted in the future.
  *
  * @public
  */
-class BlockingQueue<T = any> implements AsyncIterable<T> {
+class BlockingQueue<T> implements AsyncIterable<T> {
   /**
    * Values that have been enqueued and not removed.
 
    * @internal
    */
-  _values = new ArrayDeque<T>();
+  _values: ArrayDeque<T>;
 
   /**
    * Resolvers for Promises that have been dequeued but not resolved.
    *
    * @internal
    */
-  _resolves = new ArrayDeque<(value: T) => void>();
+  _resolves: ArrayDeque<(value: T) => void>;
+
+  /**
+   * Constructs an empty BlockingQueue.
+   */
+  constructor() {
+    this._values = new ArrayDeque();
+    this._resolves = new ArrayDeque();
+  }
 
   /**
    * Inserts an element at the tail of the queue.
