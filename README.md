@@ -1,39 +1,39 @@
 ## API Reference
 
-- [`ArrayDeque`](#arraydeque)
-  - [`constructor`](#arraydequeconstructor)
-  - [`MAX_CAPACITY`](#arraydequemax_capacity)
-  - [`size`](#arraydequesize)
-  - [`at`](#arraydequeat)
-  - [`clone`](#arraydequeclone)
-  - [`dequeue`](#arraydequedequeue)
-  - [`dequeueUnchecked`](#arraydequedequeueunchecked)
-  - [`enqueue`](#arraydequeenqueue)
-  - [`ensureCapacity`](#arraydequeensurecapacity)
-  - [`first`](#arraydequefirst)
-  - [`firstUnchecked`](#arraydequefirstunchecked)
-  - [`get`](#arraydequeget)
-  - [`getNonNegativeUnchecked`](#arraydequegetnonnegativeunchecked)
-  - [`getUnchecked`](#arraydequegetunchecked)
-  - [`last`](#arraydequelast)
-  - [`lastUnchecked`](#arraydequelastunchecked)
-  - [`pop`](#arraydequepop)
-  - [`popUnchecked`](#arraydequepopunchecked)
-  - [`push`](#arraydequepush)
-  - [`set`](#arraydequeset)
-  - [`setNonNegativeUnchecked`](#arraydequesetnonnegativeunchecked)
-  - [`setUnchecked`](#arraydequesetunchecked)
-  - [`shift`](#arraydequeshift)
-  - [`shiftUnchecked`](#arraydequeshiftunchecked)
-  - [`toArray`](#arraydequetoarray)
-  - [`toJSON`](#arraydequetojson)
-  - [`unshift`](#arraydequeunshift)
-  - [`[Symbol.iterator]`](#arraydequesymboliterator)
-- [`BlockingQueue`](#blockingqueue)
-  - [`constructor`](#blockingqueueconstructor)
-  - [`dequeue`](#blockingqueuedequeue)
-  - [`enqueue`](#blockingqueueenqueue)
-  - [`[Symbol.asyncIterator]`](#blockingqueuesymbolasynciterator)
+- [ArrayDeque](#arraydeque)
+  - [constructor](#arraydequeconstructor)
+  - [MAX_CAPACITY](#arraydequemax_capacity)
+  - [size](#arraydequesize)
+  - [at](#arraydequeat)
+  - [clone](#arraydequeclone)
+  - [dequeue](#arraydequedequeue)
+  - [dequeueUnchecked](#arraydequedequeueunchecked)
+  - [enqueue](#arraydequeenqueue)
+  - [ensureCapacity](#arraydequeensurecapacity)
+  - [first](#arraydequefirst)
+  - [firstUnchecked](#arraydequefirstunchecked)
+  - [get](#arraydequeget)
+  - [getNonNegativeUnchecked](#arraydequegetnonnegativeunchecked)
+  - [getUnchecked](#arraydequegetunchecked)
+  - [last](#arraydequelast)
+  - [lastUnchecked](#arraydequelastunchecked)
+  - [pop](#arraydequepop)
+  - [popUnchecked](#arraydequepopunchecked)
+  - [push](#arraydequepush)
+  - [set](#arraydequeset)
+  - [setNonNegativeUnchecked](#arraydequesetnonnegativeunchecked)
+  - [setUnchecked](#arraydequesetunchecked)
+  - [shift](#arraydequeshift)
+  - [shiftUnchecked](#arraydequeshiftunchecked)
+  - [toArray](#arraydequetoarray)
+  - [toJSON](#arraydequetojson)
+  - [unshift](#arraydequeunshift)
+  - [\[Symbol.iterator\]](#arraydequesymboliterator)
+- [BlockingQueue](#blockingqueue)
+  - [constructor](#blockingqueueconstructor)
+  - [dequeue](#blockingqueuedequeue)
+  - [enqueue](#blockingqueueenqueue)
+  - [\[Symbol.asyncIterator\]](#blockingqueuesymbolasynciterator)
 
 ---
 
@@ -43,7 +43,7 @@
 class ArrayDeque<T> implements Iterable<T>
 ```
 
-A double-ended queue backed by an array.
+A double-ended queue backed by a circular buffer.
 
 ArrayDeques support amortized constant-time insertion and removal at both
 ends, and constant-time access to elements by index. Iterating over an
@@ -142,10 +142,9 @@ firstUnchecked(): T
 ```
 
 Returns the first element without removing it, assuming the ArrayDeque
-is non-empty.
+is non-empty. See [ArrayDeque.first](#arraydequefirst).
 
-Like [ArrayDeque.first](#arraydequefirst), but if the ArrayDeque is empty, the
-behavior is not defined.
+If the ArrayDeque is empty, the behavior is not defined.
 
 #### `ArrayDeque.get`
 
@@ -208,7 +207,7 @@ lastUnchecked(): T
 Returns the last element without removing it, assuming the ArrayDeque is
 non-empty. See [ArrayDeque.last](#arraydequelast).
 
-If the ArrayDeque is empty, the behavior is undefined.
+If the ArrayDeque is empty, the behavior is not defined.
 
 #### `ArrayDeque.pop`
 

@@ -1,5 +1,5 @@
 /**
- * A double-ended queue backed by an array.
+ * A double-ended queue backed by a circular buffer.
  *
  * ArrayDeques support amortized constant-time insertion and removal at both
  * ends, and constant-time access to elements by index. Iterating over an
@@ -167,10 +167,9 @@ class ArrayDeque<T> implements Iterable<T> {
 
   /**
    * Returns the first element without removing it, assuming the ArrayDeque
-   * is non-empty.
+   * is non-empty. See {@link ArrayDeque.first}.
    *
-   * Like {@link ArrayDeque.first}, but if the ArrayDeque is empty, the
-   * behavior is not defined.
+   * If the ArrayDeque is empty, the behavior is not defined.
    */
   firstUnchecked(): T {
     return this.first()!;
@@ -237,7 +236,7 @@ class ArrayDeque<T> implements Iterable<T> {
    * Returns the last element without removing it, assuming the ArrayDeque is
    * non-empty. See {@link ArrayDeque.last}.
    *
-   * If the ArrayDeque is empty, the behavior is undefined.
+   * If the ArrayDeque is empty, the behavior is not defined.
    */
   lastUnchecked(): T {
     return this.last()!;
